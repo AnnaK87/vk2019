@@ -10,9 +10,16 @@ import UIKit
 
 class NewGroupTVC: UITableViewController {
     
+    @IBOutlet weak var searchBar: UISearchBar!
+    var searchActive: Bool = false
+    var filteredData = [NewGroup]()
+    
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        searchBar.delegate = self
+       
         navigationItem.title = "New Groups"
         
         self.clearsSelectionOnViewWillAppear = false
@@ -25,14 +32,22 @@ class NewGroupTVC: UITableViewController {
     
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        // #warning Incomplete implementation, return the number of rows
+        if searchActive {
+            return filteredData.count
+        }
         return DataService.instance.getNewGroup().count
     }
     
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         if let cell = tableView.dequeueReusableCell(withIdentifier: NEW_GROUP_CELL, for: indexPath) as? NewGroupCell {
-            let newGroup = DataService.instance.getNewGroup()[indexPath.row]
+            let newGroup: NewGroup
+            if searchActive {
+                newGroup = filteredData[indexPath.row]
+            } else {
+                newGroup = DataService.instance.getNewGroup()[indexPath.row]
+            }
+           
             cell.configureCell(for: newGroup)
             
             return cell
@@ -87,4 +102,34 @@ class NewGroupTVC: UITableViewController {
      }
      */
     
+}
+
+extension NewGroupTVC: UISearchBarDelegate {
+    
+    func searchBarTextDidBeginEditing(_ searchBar: UISearchBar) {
+        searchActive = true
+    }
+    
+    func searchBarTextDidEndEditing(_ searchBar: UISearchBar) {
+        searchActive = false
+    }
+    
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        searchActive = false
+    }
+    
+    
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        filteredData = DataService.instance.getNewGroup().filter({ (newGroup) -> Bool in
+             let temp: NSString = newGroup.name as NSString
+                let range = temp.range(of: searchText, options: NSString.CompareOptions.caseInsensitive)
+                return range.location != NSNotFound
+        })
+        if filteredData.count == 0 {
+            searchActive = false
+        } else {
+            searchActive = true
+        }
+     self.tableView.reloadData()
+    }
 }
